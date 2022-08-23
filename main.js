@@ -38,13 +38,22 @@ function Vista(element, initalData){
         const value = boundInput.getAttribute('bind:value');
         boundInput.removeAttribute('bind:value');
         boundInput.setAttribute('value', value);
+        boundInput.addEventListener('input', function(e){
+          console.log(e.target.value);
+        })
+        console.log(boundInput);
       })
     }
   }
-  
-  initEvents();
+
+  /* 
+  Adding events, currently adding events not working
+  Adding binding event should work
+  currently it doesn nothing
+  */
 
   const htmlContent = render(el.innerHTML, data);
+  initEvents();
   el.innerHTML = htmlContent;
   this.$data = setupProxy(initalData, this.$el.innerHTML);
 
