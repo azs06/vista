@@ -3,10 +3,7 @@ import './style.css'
 function Vista(element, initalData){
   const el = element;
   const data = {...initalData};
-  this.$el = element;
-  this.$data = setupProx(initalData);
-  const htmlContent = render(el.innerHtml, data);
-  el.innerHtml = htmlContent;
+  this.$el = el.cloneNode(true);
 
   const render = (template, passedData) => {
     return template.replace(/{{(.*?)}}/g, (match) => {
@@ -15,8 +12,7 @@ function Vista(element, initalData){
     });
   };
 
-
-  const setupProx = (target) =>{
+  function setupProxy(target, template){
     const handler = {
       get(target, prop, receiver){
         return Reflect.get(...arguments);
@@ -24,18 +20,18 @@ function Vista(element, initalData){
       set(obj, prop, value){
         if(obj && obj[prop]){
           Reflect.set(obj, prop, value)
-          if(el){
-            el.innerHtml = render(el.innerHtml, target);
+          if(el && template){
+            el.innerHTML = render(template, target);
           }
         }
       }
     }
-    return this.$data;
+    return new Proxy(target, handler)
   }
-  /* 
-    need to make object reactive
-    on the data change, have to change html
-  */
+
+  const htmlContent = render(el.innerHTML, data);
+  el.innerHTML = htmlContent;
+  this.$data = setupProxy(initalData, this.$el.innerHTML);
 
   if(data){
     for(var key in data){
@@ -43,7 +39,7 @@ function Vista(element, initalData){
     }
   }
 
-  return new Proxy(this);
+  return this.$data;
 }
 
 const app = new Vista(document.getElementById('app'), {
@@ -51,4 +47,3 @@ const app = new Vista(document.getElementById('app'), {
   items: [1, 2, 3, 4]
 })
 console.log(app);
-//setupCounter(document.querySelector('#counter'))
