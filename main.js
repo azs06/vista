@@ -12,6 +12,8 @@ function Vista(element, initalData){
     });
   };
 
+
+
   function setupProxy(target, template){
     const handler = {
       get(target, prop, receiver){
@@ -29,6 +31,19 @@ function Vista(element, initalData){
     return new Proxy(target, handler)
   }
 
+  function initEvents(){
+    const boundInputs = el.querySelectorAll("[bind\\:value]");
+    if(boundInputs){
+      boundInputs.forEach((boundInput) => {
+        const value = boundInput.getAttribute('bind:value');
+        boundInput.removeAttribute('bind:value');
+        boundInput.setAttribute('value', value);
+      })
+    }
+  }
+  
+  initEvents();
+
   const htmlContent = render(el.innerHTML, data);
   el.innerHTML = htmlContent;
   this.$data = setupProxy(initalData, this.$el.innerHTML);
@@ -44,6 +59,5 @@ function Vista(element, initalData){
 
 const app = new Vista(document.getElementById('app'), {
   msg: "Hello",
-  items: [1, 2, 3, 4]
 })
 console.log(app);
