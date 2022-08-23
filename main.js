@@ -1,13 +1,13 @@
 import './style.css'
-import javascriptLogo from './javascript.svg'
-import { setupCounter } from './counter.js'
 
 function Vista(element, initalData){
-  const el = this.$el = element;
-  const data = this.$data = {...initalData};
+  const el = element;
+  const data = {...initalData};
+  this.$el = element;
+  this.$data = setupProx(initalData);
   const htmlContent = render(el.innerHtml, data);
   el.innerHtml = htmlContent;
-  
+
   const render = (template, passedData) => {
     return template.replace(/{{(.*?)}}/g, (match) => {
       const matchedArray = match.split(/{{|}}/).filter(Boolean);
@@ -15,6 +15,27 @@ function Vista(element, initalData){
     });
   };
 
+
+  const setupProx = (target) =>{
+    const handler = {
+      get(target, prop, receiver){
+        return Reflect.get(...arguments);
+      },
+      set(obj, prop, value){
+        if(obj && obj[prop]){
+          Reflect.set(obj, prop, value)
+          if(el){
+            el.innerHtml = render(el.innerHtml, target);
+          }
+        }
+      }
+    }
+    return this.$data;
+  }
+  /* 
+    need to make object reactive
+    on the data change, have to change html
+  */
 
   if(data){
     for(var key in data){
