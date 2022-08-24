@@ -75,7 +75,7 @@ function Vista(element, initalData){
     }
   }
 
-  return this.$data;
+  return this;
 }
 
 const app = new Vista(document.getElementById('app'), {
