@@ -1,5 +1,8 @@
 import './style.css'
 
+/* 
+this function should return data and element of the mounted Vista app
+*/
 function Vista(element, initalData){
   const el = element;
   const data = {...initalData};
@@ -50,6 +53,15 @@ function Vista(element, initalData){
   Adding events, currently adding events not working
   Adding binding event should work
   currently it doesn nothing
+  */
+
+  /* 
+  
+  keep an array/object/set for referce of dom origin and parsed dom
+  example
+  const domMap = new Set()
+  domMap.set(<div>{{msg}}</div>, <div>Soikat</div>);
+  for input type we have to keep hold of the event that was added or model binding
   */
 
   const htmlContent = render(el.innerHTML, data);
