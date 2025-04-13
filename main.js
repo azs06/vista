@@ -1,84 +1,114 @@
-import './style.css'
+// This is a simple JavaScript library that allows for reactive data binding, inspired by Vue.js 0.11
 
-/* 
-this function should return data and element of the mounted Vista app
-*/
-function Vista(element, initalData){
-  const el = element;
-  const data = {...initalData};
-  this.$el = el.cloneNode(true);
+function Vista(element, initialData) {
+  // Save a reference to the container element and capture the original template.
+  this.$el = element;
+  this.template = element.innerHTML;
 
+  // Create a shallow copy of the initial data.
+  const data = { ...initialData };
+  const self = this;
+
+  // Render function that replaces double-curly placeholders with data values.
   const render = (template, passedData) => {
-    return template.replace(/{{(.*?)}}/g, (match) => {
-      const matchedArray = match.split(/{{|}}/).filter(Boolean);
-      return passedData[matchedArray[0]] || match;
+    // The regex replaces all occurrences of {{ key }} with its value from passedData.
+    return template.replace(/{{\s*(.*?)\s*}}/g, (_, key) => {
+      return passedData[key] !== undefined ? passedData[key] : '';
     });
   };
 
+  // Update the view by re-rendering the template with the current data
+  // and re-binding event listeners.
+  const updateView = () => {
+    self.$el.innerHTML = render(self.template, data);
+    // Reinitialize events on new DOM elements since innerHTML replacement loses previous listeners.
+    initEvents();
+  };
 
-
-  function setupProxy(target, template){
-    const handler = {
-      get(target, prop, receiver){
-        return Reflect.get(...arguments);
+  // Create a reactive proxy for the data object.
+  const setupProxy = (target) => {
+    return new Proxy(target, {
+      get(obj, prop) {
+        return obj[prop];
       },
-      set(obj, prop, value){
-        if(obj && obj[prop]){
-          Reflect.set(obj, prop, value)
-          if(el && template){
-            el.innerHTML = render(template, target);
-          }
-        }
+      set(obj, prop, value) {
+        obj[prop] = value;
+        updateView(); // Re-render the view whenever data changes.
+        return true;
       }
-    }
-    return new Proxy(target, handler)
-  }
+    });
+  };
 
-  function initEvents(){
-    const boundInputs = el.querySelectorAll("[bind\\:value]");
-    if(boundInputs){
-      boundInputs.forEach((boundInput) => {
-        const value = boundInput.getAttribute('bind:value');
-        boundInput.removeAttribute('bind:value');
-        boundInput.setAttribute('value', value);
-        boundInput.addEventListener('input', function(e){
-          console.log(e.target.value);
-        })
-        console.log(boundInput);
-      })
-    }
-  }
+  // Initialize DOM event bindings.
+  // This includes two-way binding for inputs with attribute "bind:value"
+  // and basic event bindings for elements with directives like "vista-on:click".
+  const initEvents = () => {
+    // Two-way binding for inputs.
+    const boundInputs = self.$el.querySelectorAll('[bind\\:value]');
+    boundInputs.forEach(input => {
+      const bindProp = input.getAttribute('bind:value');
+      input.removeAttribute('bind:value');
+      // Set the input's value from the current data.
+      input.value = data[bindProp] || '';
+      // Update the model when the user types in the input.
+      input.addEventListener('input', function(e) {
+        self.$data[bindProp] = e.target.value;
+      });
+    });
+    
+    // Basic click event binding.
+    // For elements with a vista-on:click attribute, expect a method name that should be called on click.
+    const boundEvents = self.$el.querySelectorAll('[vista-on\\:click]');
+    boundEvents.forEach(el => {
+      const methodName = el.getAttribute('vista-on:click');
+      el.removeAttribute('vista-on:click');
+      // If a method is defined on the Vista instance, bind it to the element.
+      if (typeof self[methodName] === 'function') {
+        el.addEventListener('click', self[methodName].bind(self));
+      }
+    });
+  };
 
-  /* 
-  Adding events, currently adding events not working
-  Adding binding event should work
-  currently it doesn nothing
-  */
+  // Assign reactive data proxy to the instance.
+  this.$data = setupProxy(data);
 
-  /* 
-  
-  keep an array/object/set for referce of dom origin and parsed dom
-  example
-  const domMap = new Set()
-  domMap.set(<div>{{msg}}</div>, <div>Soikat</div>);
-  for input type we have to keep hold of the event that was added or model binding
-  */
+  // Expose each property of initialData directly on the instance for easier access.
+  Object.keys(initialData).forEach(key => {
+    Object.defineProperty(this, key, {
+      get: () => self.$data[key],
+      set: (value) => { self.$data[key] = value; }
+    });
+  });
 
-  const htmlContent = render(el.innerHTML, data);
-  initEvents();
-  el.innerHTML = htmlContent;
-  this.$data = setupProxy(initalData, this.$el.innerHTML);
-
-  if(data){
-    for(var key in data){
-      this[key] = data[key];
-    }
-  }
+  // Initial render.
+  updateView();
 
   return this;
 }
 
+/*
+  Vista.prototype.method for attaching custom methods to the instance.
+*/
+Vista.prototype.method = function(methodName, callback) {
+  this[methodName] = callback.bind(this);
+};
+
+// ----------------- Usage Example -----------------
+
+// <div id="app">
+//   <p>{{msg}}</p>
+//   <input type="text" bind:value="msg" />
+//   <button vista-on:click="changeMsg">Change Message</button>
+// </div>
+
+// Create a new Vista instance with initial data.
 const app = new Vista(document.getElementById('app'), {
-  msg: "Hello",
-})
+  msg: "Hello"
+});
+
+// Adding a custom method called 'changeMsg' that updates the message.
+app.method('changeMsg', function() {
+  this.msg = "Hello World!";
+});
+
 console.log(app);
